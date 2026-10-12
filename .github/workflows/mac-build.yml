@@ -1,0 +1,57 @@
+# Personal build: an ad-hoc signed Apple Silicon DMG of this fork, on GitHub's standard macOS
+# runner (no release environment, no signing secrets). It is published as a prerelease here.
+name: Mac build (fork)
+
+on:
+  push:
+    branches: [fix/jpeg-options]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  PHOTOCRAFT_BUILD_SHA: ${{ github.sha }}
+
+jobs:
+  macos:
+    name: macOS Apple Silicon
+    if: github.repository != 'storytold/photocraft'
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out craft-fonts (optional fonts)
+        continue-on-error: true
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          repository: storytold/craft-fonts
+          ref: abb83316d96aa59c1cf64784289e378fe9fa5695
+          path: craft-fonts
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: fork-macos-aarch64
+      - name: Build and package (ad-hoc signed)
+        run: |
+          if [ -d craft-fonts ]; then export CRAFT_FONTS_DIR="$GITHUB_WORKSPACE/craft-fonts"; fi
+          packaging/macos/package.sh --arch aarch64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: photocraft-macos-aarch64
+          path: dist/release/*.dmg
+          if-no-files-found: error
+      - name: Publish as a release on this fork
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="jpegfix-${GITHUB_SHA::7}"
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
+            --title "PhotoCraft JPEG Options (${GITHUB_SHA::7})" \
+            --notes "Ad-hoc signed Apple Silicon build of branch fix/jpeg-options. First launch: right-click PhotoCraft, choose Open." \
+            dist/release/*.dmg
