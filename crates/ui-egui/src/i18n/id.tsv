@@ -1870,6 +1870,13 @@
 	Integrations	Integrasi
 	Interface	Antarmuka
 	Jpeg quality	Kualitas JPEG
+	Jpeg save quality	Kualitas simpan JPEG
+	JPEG Options	Opsi JPEG
+	Image Options	Opsi gambar
+	small file	berkas kecil
+	large file	berkas besar
+	Full color detail (4:4:4).	Detail warna penuh (4:4:4).
+	Color stored at half size (4:2:0) for a smaller file.	Warna disimpan setengah ukuran (4:2:0) agar berkas lebih kecil.
 	Jpg	JPG
 	Language	Bahasa
 	Large tabs	Tab besar

@@ -143,7 +143,13 @@ fn layered_save_respects_explicit_jpeg_choices() {
     app.poll_file_dialog(&ctx, None);
     answer(&open, Some(FileDialogAnswer::SaveTo("/exports/chosen.JPEG".into())));
     app.poll_file_dialog(&ctx, None);
+    // A JPEG picked in the dialog asks for its quality first (JPEG Options), as in Photoshop.
+    assert!(written.borrow().is_empty());
+    assert_eq!(app.jpeg_options.as_ref().map(|p| p.quality), Some(10), "starts at the remembered quality");
+    app.jpeg_options.as_mut().unwrap().quality = 12;
+    crate::jpeg_options_ui::confirm(&mut app, &ctx);
     assert_eq!(*written.borrow(), ["/exports/chosen.jpeg"]);
+    assert_eq!(app.session.prefs().export.jpeg_save_quality, 12, "the quality is remembered");
     // The JPEG can't hold the layers, so it is a copy and the document keeps its file (#2550).
     assert_eq!(app.session.active().unwrap().path.as_deref(), Some("/pics/My image.JPEG"));
     // Explicit command paths carry the same choice and bypass the picker.

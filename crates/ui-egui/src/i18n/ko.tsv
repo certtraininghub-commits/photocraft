@@ -1867,6 +1867,13 @@
 	Integrations	연동
 	Interface	인터페이스
 	Jpeg quality	JPEG 품질
+	Jpeg save quality	JPEG 저장 품질
+	JPEG Options	JPEG 옵션
+	Image Options	이미지 옵션
+	small file	작은 파일
+	large file	큰 파일
+	Full color detail (4:4:4).	색상 디테일 전체 유지 (4:4:4).
+	Color stored at half size (4:2:0) for a smaller file.	파일을 줄이기 위해 색상을 절반 크기로 저장 (4:2:0).
 	Jpg	JPG
 	Language	언어
 	Large tabs	큰 탭

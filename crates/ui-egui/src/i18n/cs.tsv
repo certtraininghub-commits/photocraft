@@ -1921,6 +1921,13 @@
 	Integrations	Integrace
 	Interface	Rozhraní
 	Jpeg quality	Kvalita JPEG
+	Jpeg save quality	Kvalita JPEG při uložení
+	JPEG Options	Volby JPEG
+	Image Options	Volby obrazu
+	small file	malý soubor
+	large file	velký soubor
+	Full color detail (4:4:4).	Plné barevné detaily (4:4:4).
+	Color stored at half size (4:2:0) for a smaller file.	Barva uložena v poloviční velikosti (4:2:0) pro menší soubor.
 	Jpg	JPG
 	Language	Jazyk
 	Large tabs	Velké záložky

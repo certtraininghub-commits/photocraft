@@ -1907,6 +1907,15 @@
 	Integrations	整合
 	Interface	介面
 	Jpeg quality	JPEG 品質
+	Jpeg save quality	JPEG 儲存品質
+	JPEG Options	JPEG 選項
+	Image Options	影像選項
+	small file	小檔案
+	large file	大檔案
+	Low	低
+	High	高
+	Full color detail (4:4:4).	保留完整色彩細節 (4:4:4)。
+	Color stored at half size (4:2:0) for a smaller file.	色彩以一半尺寸儲存 (4:2:0)，檔案更小。
 	Jpg	JPG
 	Language	語言
 	Large tabs	大型索引標籤

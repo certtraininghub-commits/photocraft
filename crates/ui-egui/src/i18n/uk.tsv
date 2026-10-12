@@ -2292,6 +2292,13 @@
 	Integrations	Інтеграції
 	Interface	Інтерфейс
 	Jpeg quality	Якість JPEG
+	Jpeg save quality	Якість збереження JPEG
+	JPEG Options	Параметри JPEG
+	Image Options	Параметри зображення
+	small file	малий файл
+	large file	великий файл
+	Full color detail (4:4:4).	Повна деталізація кольору (4:4:4).
+	Color stored at half size (4:2:0) for a smaller file.	Колір зберігається в половинному розмірі (4:2:0) для меншого файлу.
 	Jpg	JPG
 	Large tabs	Великі вкладки
 	Legacy compositing	Застаріле компонування

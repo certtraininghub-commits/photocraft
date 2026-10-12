@@ -1905,6 +1905,15 @@
 	Integrations	Integraciones
 	Interface	Interfaz
 	Jpeg quality	Calidad JPEG
+	Jpeg save quality	Calidad al guardar JPEG
+	JPEG Options	Opciones de JPEG
+	Image Options	Opciones de imagen
+	small file	archivo pequeño
+	large file	archivo grande
+	Low	Baja
+	High	Alta
+	Full color detail (4:4:4).	Detalle de color completo (4:4:4).
+	Color stored at half size (4:2:0) for a smaller file.	Color guardado a la mitad de tamaño (4:2:0) para un archivo más pequeño.
 	Jpg	JPG
 	Language	Idioma
 	Large tabs	Pestañas grandes

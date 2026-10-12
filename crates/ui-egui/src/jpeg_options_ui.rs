@@ -96,7 +96,7 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
         ui.add_space(8.0);
         crate::widgets::section_label(ui, tl!("Image Options"));
         ui.horizontal(|ui| {
-            ui.label(tl!("Quality:"));
+            ui.label(tl!("Quality"));
             let mut steps = q as u32;
             if ui.add(egui::DragValue::new(&mut steps).range(0..=12).speed(0.1)).changed() {
                 q = steps.min(12) as u8;
@@ -129,6 +129,17 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
     cancel |= modal.should_close();
     p.quality = q;
     if ok || ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter)) {
+        confirm(app, ctx);
+    } else if cancel {
+        app.jpeg_options = None;
+        app.ui.status = tl!("Save cancelled").into();
+        app.ui.status_error = false;
+    }
+}
+
+/// OK in JPEG Options: remembers the quality and writes the parked save.
+pub(crate) fn confirm(app: &mut PhotocraftApp, ctx: &egui::Context) {
+    {
         let Some(p) = app.jpeg_options.take() else { return };
         app.session.edit_prefs(|prefs| prefs.export.jpeg_save_quality = p.quality as u32);
         let settings = settings(app, p.quality);
@@ -147,10 +158,6 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
             // A background save releases the close prompt when it finishes (`jobs_ui`).
             Ok(_) => {}
         }
-    } else if cancel {
-        app.jpeg_options = None;
-        app.ui.status = tl!("Save cancelled").into();
-        app.ui.status_error = false;
     }
 }
 

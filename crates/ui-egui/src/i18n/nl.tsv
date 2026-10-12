@@ -1877,6 +1877,13 @@
 	Integrations	Integraties
 	Interface	Interface
 	Jpeg quality	JPEG-kwaliteit
+	Jpeg save quality	JPEG-opslagkwaliteit
+	JPEG Options	JPEG-opties
+	Image Options	Afbeeldingsopties
+	small file	klein bestand
+	large file	groot bestand
+	Full color detail (4:4:4).	Volledig kleurdetail (4:4:4).
+	Color stored at half size (4:2:0) for a smaller file.	Kleur op halve grootte opgeslagen (4:2:0) voor een kleiner bestand.
 	Jpg	JPG
 	Language	Taal
 	Large tabs	Grote tabbladen
