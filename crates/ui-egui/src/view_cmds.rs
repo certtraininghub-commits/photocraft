@@ -1167,6 +1167,9 @@ fn save_a_copy(app: &mut PhotocraftApp) -> Result<Value, String> {
             let ask = crate::targa_options_ui::wants_prompt(app, &path);
             if ask {
                 crate::targa_options_ui::park(app, path.clone(), true, false)?;
+            } else if crate::jpeg_options_ui::is_jpeg_path(&path) {
+                crate::jpeg_options_ui::park(app, path.clone(), true, false)?;
+                return Ok(true);
             }
             Ok(ask)
         })?;

@@ -181,6 +181,7 @@ pub mod swatches_ui;
 pub mod symmetry_ui;
 mod tab_strip;
 pub mod targa_options_ui;
+pub mod jpeg_options_ui;
 pub mod text_field_menu;
 pub mod theme;
 pub mod tiff_options_ui;
@@ -229,6 +230,8 @@ pub type ImportFn = Box<dyn Fn(&str, &[u8], usize) -> Result<(Document, Vec<Stri
 pub struct ExportSettings {
     /// JPEG quality 1–100 (None = codec default).
     pub jpeg_quality: Option<u8>,
+    /// JPEG 4:2:0 chroma subsampling (`false` keeps full colour detail, 4:4:4; None = codec default).
+    pub jpeg_subsampling: Option<bool>,
     /// WebP: lossless (VP8L) rather than lossy (VP8 at [`Self::webp_quality`]).
     pub webp_lossless: bool,
     /// Lossy WebP quality 1–100 (None = codec default).
@@ -249,7 +252,7 @@ pub struct ExportSettings {
 
 impl Default for ExportSettings {
     fn default() -> Self {
-        ExportSettings { jpeg_quality: None, webp_lossless: true, webp_quality: None, tiff_layers: true, xmp_all: true, tga_bits: None, image_previews: true }
+        ExportSettings { jpeg_quality: None, jpeg_subsampling: None, webp_lossless: true, webp_quality: None, tiff_layers: true, xmp_all: true, tga_bits: None, image_previews: true }
     }
 }
 
@@ -676,6 +679,8 @@ pub struct PhotocraftApp {
     pub(crate) save_dirs: HashMap<photocraft_doc::DocId, std::path::PathBuf>,
     /// A save to an RGB Targa parked behind the Targa Options prompt (see `targa_options_ui`).
     pub(crate) targa_options: Option<targa_options_ui::Prompt>,
+    /// A save to a JPEG picked in the save dialog, parked behind the JPEG Options prompt (see `jpeg_options_ui`).
+    pub(crate) jpeg_options: Option<jpeg_options_ui::Prompt>,
     /// Set once the user has agreed to quit, so the resulting close request goes through.
     pub(crate) allow_close: bool,
     /// Pen pressure/tilt from the platform (see `stylus`).
@@ -798,6 +803,7 @@ impl PhotocraftApp {
             tiff_options: None,
             save_dirs: HashMap::new(),
             targa_options: None,
+            jpeg_options: None,
             allow_close: false,
             stylus: Default::default(),
             background_jobs: false,
@@ -1212,7 +1218,17 @@ impl PhotocraftApp {
             }
         };
         let doc = st.doc.id;
-        self.pick_save(&suggested, move |app, path| app.with_document(doc, |app| app.save_to(path, tga_bits)))
+        self.pick_save(&suggested, move |app, path| {
+            app.with_document(doc, |app| {
+                // A JPEG named in the dialog asks for its quality first, as Photoshop's JPEG Options.
+                if jpeg_options_ui::is_jpeg_path(&path) {
+                    let copy = app.saves_copy(&path, None)?;
+                    jpeg_options_ui::park(app, path.clone(), copy, true)?;
+                    return Ok(serde_json::json!({"path": path, "warnings": []}));
+                }
+                app.save_to(path, tga_bits)
+            })
+        })
     }
 
     /// [`Self::save_as_with`] once the path is known.
@@ -1278,6 +1294,16 @@ impl PhotocraftApp {
         }
         let path = params.get("path").and_then(Value::as_str).filter(|p| !p.is_empty()).ok_or("Save As needs a `path`")?;
         let tga_bits = targa_options_ui::bits_param(params, id)?;
+        if let Some(q) = jpeg_options_ui::quality_param(params)? {
+            let copy = self.saves_copy(path, None)?;
+            let settings = jpeg_options_ui::settings(self, q);
+            let r = match self.write_document(path.to_string(), &settings, copy)? {
+                Some((path, warnings)) => serde_json::json!({"path": path, "warnings": warnings}),
+                None => serde_json::json!({"path": path, "warnings": [], "pending": true, "job": self.jobs.last_started.map(|j| j.0)}),
+            };
+            self.session.journal.push(("file.saveAs".into(), serde_json::json!({"path": path, "jpegQuality": q})));
+            return Ok(r);
+        }
         self.save_as_step(path.to_string(), params.get("tiffLayers").and_then(Value::as_bool), tga_bits)
     }
 
@@ -1386,7 +1412,7 @@ impl PhotocraftApp {
 
     /// TIFF Options or Targa Options is waiting on an answer before a save is written.
     pub(crate) fn save_options_open(&self) -> bool {
-        self.tiff_options.is_some() || self.targa_options.is_some()
+        self.tiff_options.is_some() || self.targa_options.is_some() || self.jpeg_options.is_some()
     }
 
     /// A save is running in the background.
@@ -1685,6 +1711,7 @@ impl eframe::App for PhotocraftApp {
         discard_ui::show(self, &ctx);
         tiff_options_ui::show(self, &ctx);
         targa_options_ui::show(self, &ctx);
+        jpeg_options_ui::show(self, &ctx);
         distort_ui::show(self, &ctx);
         camera_raw_ui::show(self, &ctx);
         wide_angle_ui::show(self, &ctx);

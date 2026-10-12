@@ -516,6 +516,8 @@ pub struct Export {
     pub quick_export_format: QuickExportFormat,
     pub quick_export_location: ExportLocation,
     pub jpeg_quality: u32,
+    /// File › Save As / Save a Copy to JPEG: the JPEG Options quality last chosen (0–12, as Photoshop).
+    pub jpeg_save_quality: u32,
     /// Keep the existing lossless Quick Export default until the user opts into lossy WebP.
     pub webp_lossless: bool,
     pub webp_quality: u32,
@@ -529,6 +531,7 @@ impl Default for Export {
             quick_export_format: QuickExportFormat::Png,
             quick_export_location: ExportLocation::Ask,
             jpeg_quality: 85,
+            jpeg_save_quality: 10,
             webp_lossless: true,
             webp_quality: 85,
             metadata: ExportMetadata::Copyright,

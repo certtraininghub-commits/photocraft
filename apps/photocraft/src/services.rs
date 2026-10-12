@@ -201,6 +201,9 @@ fn export_options(settings: &photocraft_ui_egui::ExportSettings) -> photocraft_i
     if let Some(q) = settings.jpeg_quality {
         opts.encode.jpeg_quality = q;
     }
+    if let Some(s) = settings.jpeg_subsampling {
+        opts.encode.jpeg_chroma_subsampling = s;
+    }
     opts.encode.webp_lossless = settings.webp_lossless;
     if let Some(q) = settings.webp_quality {
         opts.encode.webp_quality = q;

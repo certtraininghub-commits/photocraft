@@ -209,6 +209,8 @@ fn settings(f: &Map<String, Value>) -> ExportSettings {
     let quality = n(f, "quality", 85.0).clamp(1.0, 100.0) as u8;
     ExportSettings {
         jpeg_quality: (fmt == "jpg").then_some(quality),
+        // Full colour detail (4:4:4) from 90 up, as Photoshop keeps it at its high settings.
+        jpeg_subsampling: (fmt == "jpg").then_some(quality < 90),
         webp_lossless: fmt != "webp" || lossless(f),
         webp_quality: (fmt == "webp" && !lossless(f)).then_some(quality),
         xmp_all: s(f, "metadata") == "all",
