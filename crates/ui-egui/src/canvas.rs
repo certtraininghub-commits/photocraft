@@ -2594,27 +2594,6 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
                 offset: [0.0, 0.0],
             };
             paint_gpu_view(&painter, rect, params, &pattern);
-            // Split before/after (filter dialogs): the original left of the divider, as in Nik
-            // Color Efex. The proxy shows the filter; the document's own view covers the left part.
-            if split && ensure_gpu(app, idx, visible_doc_rect(&xf)) {
-                let left = Rect::from_min_max(rect.min, pos2(rect.min.x + rect.width() * app.ui.split_at.clamp(0.0, 1.0), rect.max.y));
-                let before = crate::gpu_canvas::ViewParams {
-                    doc: doc.id.0,
-                    doc_size: [doc.size.width, doc.size.height],
-                    zoom: point_zoom,
-                    center: view.center,
-                    rotation: if view.rotation.is_finite() { view.rotation.to_radians() } else { 0.0 },
-                    shadow: false,
-                    pixel_grid: false,
-                    view_key: egui::Id::new(("pc-canvas-before", ctx.viewport_id(), idx)).value(),
-                    display: sync_display_lut(app, &doc, doc.id.0, output),
-                    output: output.unwrap_or(0),
-                    hdr: hdr_preview(app, &doc),
-                    offset: [0.0, 0.0],
-                };
-                paint_gpu_view(&painter.with_clip_rect(left.intersect(painter.clip_rect())), rect, before, &[]);
-                split_divider(app, ui, &painter, rect, idx);
-            }
         } else if gpu_ok && ensure_gpu(app, idx, visible_doc_rect(&xf)) {
             on_gpu = true;
             app.perf.gpu = true;
@@ -2648,6 +2627,31 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
             for &c in &pattern {
                 paint_cpu_document(&painter, &pattern_xf(&xf, c, size), doc.bounds(), rotated, checkerboard, tex);
             }
+        }
+        // Split before/after (filter and adjustment dialogs): the untouched document left of the
+        // divider, as in Nik Color Efex. It has its own texture, reduced to about the screen's
+        // resolution, since the main one shows the preview.
+        if split
+            && on_gpu
+            && let Some((k, key, size)) = ensure_split_before(app, idx, view.zoom)
+        {
+            let left = Rect::from_min_max(rect.min, pos2(rect.min.x + rect.width() * app.ui.split_at.clamp(0.0, 1.0), rect.max.y));
+            let before = crate::gpu_canvas::ViewParams {
+                doc: key,
+                doc_size: size,
+                zoom: view.zoom * k as f32 / ppp,
+                center: [view.center[0] / k as f32, view.center[1] / k as f32],
+                rotation: if view.rotation.is_finite() { view.rotation.to_radians() } else { 0.0 },
+                shadow: false,
+                pixel_grid: false,
+                view_key: egui::Id::new(("pc-canvas-before", ctx.viewport_id(), idx)).value(),
+                display: sync_display_lut(app, &doc, key, output),
+                output: output.unwrap_or(0),
+                hdr: hdr_preview(app, &doc),
+                offset: [0.0, 0.0],
+            };
+            paint_gpu_view(&painter.with_clip_rect(left.intersect(painter.clip_rect())), rect, before, &[]);
+            split_divider(app, ui, &painter, rect, idx);
         }
         // Channels panel: alpha / Quick Mask overlays and single-channel views (channel_view.rs).
         if let Some(tex) = crate::channel_view::ensure(app, &ctx, idx) {
@@ -3609,6 +3613,29 @@ fn paint_mapped_image(painter: &egui::Painter, xf: &ViewXform, tex: egui::Textur
 
 /// The GPU canvas view, then its View › Pattern Preview copies (#1067): the same texture drawn
 /// again whole document sizes away, each with its own view uniform and no shadow.
+/// The "before" side of Split before/after: the committed document (no dialog preview), reduced
+/// by about the view's zoom-out so it stays near screen resolution, uploaded under its own GPU key.
+/// Rebuilt when the document, the reduction or the display transform changes.
+fn ensure_split_before(app: &mut PhotocraftApp, idx: usize, zoom: f32) -> Option<(u32, u64, [u32; 2])> {
+    let gpu = app.gpu.clone()?;
+    let st = app.session.documents().get(idx)?;
+    let (id, revision, doc) = (st.doc.id, st.revision, st.doc.clone());
+    let k = if zoom > 0.0 && zoom.is_finite() { ((1.0 / zoom).floor() as u32).clamp(1, 16) } else { 1 };
+    let key = id.0 ^ (1u64 << 58);
+    let (display, _) = canvas_display(app, &doc, None);
+    let display_key = texture_key(display.as_deref());
+    let size = [doc.size.width.div_ceil(k), doc.size.height.div_ceil(k)];
+    if app.split_before != Some((id, revision, k, display_key)) || !gpu.has(key, size) {
+        let shown = if k > 1 { crate::proxy::proxy_document(&doc, k) } else { (*doc).clone() };
+        let size = [shown.size.width, shown.size.height];
+        let r = gpu.refresh(key, &shown, None, display.as_deref());
+        app.perf.record("split-before", r.px, r.composite_ms, r.upload_ms);
+        app.split_before = Some((id, revision, k, display_key));
+        return Some((k, key, size));
+    }
+    Some((k, key, size))
+}
+
 /// The before/after divider over the canvas: a line with a round handle and Before / After
 /// labels. Dragging anywhere on the line moves it (stored as a fraction of the canvas width).
 fn split_divider(app: &mut PhotocraftApp, ui: &egui::Ui, painter: &egui::Painter, rect: Rect, idx: usize) {

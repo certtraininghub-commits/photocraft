@@ -164,6 +164,7 @@ pub fn open(app: &mut PhotocraftApp, command: &str) -> Option<u64> {
     fields.insert("__adjust".into(), json!(kind));
     fields.insert("__filter".into(), json!(true));
     fields.insert("__preview".into(), json!(true));
+    fields.insert("__split".into(), json!(app.ui.split_compare));
     if let Value::Object(p) = photocraft_engine::adjust_params::to_params(&defaults) {
         fields.extend(p);
     }
@@ -208,9 +209,17 @@ pub fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, fields: &mut Map<String,
     }
     let mut preview = fields.get("__preview").and_then(Value::as_bool).unwrap_or(true);
     ui.add_space(6.0);
-    if crate::widgets::checkbox(ui, &mut preview, tl!("Preview")).changed() {
-        fields.insert("__preview".into(), json!(preview));
-    }
+    let mut split = fields.get("__split").and_then(Value::as_bool).unwrap_or(false);
+    ui.horizontal(|ui| {
+        if crate::widgets::checkbox(ui, &mut preview, tl!("Preview")).changed() {
+            fields.insert("__preview".into(), json!(preview));
+        }
+        ui.add_space(12.0);
+        // Split before/after: the canvas shows the original left of a draggable divider.
+        if ui.add_enabled_ui(preview, |ui| crate::widgets::checkbox(ui, &mut split, tl!("Split before/after"))).inner.changed() {
+            fields.insert("__split".into(), json!(split));
+        }
+    });
 }
 
 #[cfg(test)]

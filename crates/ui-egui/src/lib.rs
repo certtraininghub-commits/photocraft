@@ -578,6 +578,8 @@ pub struct PhotocraftApp {
     pub(crate) proxy: Option<(DocId, u64, u32, std::sync::Arc<Document>)>,
     /// Key of the preview currently uploaded to the GPU (doc, params hash).
     pub(crate) proxy_uploaded: Option<(DocId, u64)>,
+    /// Split before/after: what the "before" texture holds (document, revision, reduction, display).
+    pub(crate) split_before: Option<(DocId, u64, u32, u64)>,
     /// Selection outline cache: (doc, revision, segments).
     /// Live filter preview (proxy document with the filter applied).
     pub(crate) filter_preview: Option<filter_dialog::FilterPreview>,
@@ -754,6 +756,7 @@ impl PhotocraftApp {
             bounds_cache: HashMap::new(),
             proxy: None,
             proxy_uploaded: None,
+            split_before: None,
             outline_cache: None,
             filter_preview: None,
             #[cfg(not(target_arch = "wasm32"))]

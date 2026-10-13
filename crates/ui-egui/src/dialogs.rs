@@ -642,6 +642,11 @@ mod tests {
         let plug = crate::filter_dialog::open_with_spec(&mut app, "plugin.run", "Pro Contrast", r#"{"amount":0..100=50}"#, serde_json::Map::new());
         assert_eq!(app.ui.dialogs.iter().find(|d| d.id == plug).unwrap().fields.get("__split"), Some(&serde_json::json!(true)));
         assert!((app.ui.split_at - 0.5).abs() < 1e-6, "the divider starts in the middle");
+        // Image › Adjustments dialogs (Brightness/Contrast, Curves…) offer it too.
+        let adj = crate::adjust_dialog::open(&mut app, "image.adjustments.brightnessContrast").expect("Brightness/Contrast has a dialog");
+        let fields = &app.ui.dialogs.iter().find(|d| d.id == adj).unwrap().fields;
+        assert_eq!(fields.get("__split"), Some(&serde_json::json!(true)));
+        assert!(fields.contains_key("__filter"), "the canvas finds it like a filter dialog");
     }
 
     #[test]
