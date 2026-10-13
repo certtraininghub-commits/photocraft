@@ -1906,6 +1906,9 @@
 	Jpeg quality	JPEG 品質
 	Jpeg save quality	JPEG 保存品質
 	JPEG Options	JPEG オプション
+	Before	ビフォー
+	After	アフター
+	Split before/after	ビフォー/アフターを分割
 	Image Options	画像オプション
 	small file	小さいファイル
 	large file	大きいファイル

@@ -1916,6 +1916,9 @@
 	Jpeg quality	JPEG 品质
 	Jpeg save quality	JPEG 存储品质
 	JPEG Options	JPEG 选项
+	Before	之前
+	After	之后
+	Split before/after	拆分前后对比
 	Image Options	图像选项
 	small file	小文件
 	large file	大文件

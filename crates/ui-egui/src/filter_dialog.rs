@@ -336,6 +336,10 @@ pub fn open(app: &mut PhotocraftApp, command: &str) -> Option<u64> {
     // Select and Mask previews in its view modes (`select_mask_view`), not as the command's result.
     if command.starts_with("filter.") || PREVIEWED.contains(&command) || command == crate::select_mask_view::COMMAND {
         fields.insert("__preview".into(), json!(true));
+        // Select and Mask has its own view modes; the others can split before/after.
+        if command != crate::select_mask_view::COMMAND {
+            fields.insert("__split".into(), json!(app.ui.split_compare));
+        }
     }
     for p in parse_spec(spec.params) {
         let v = match &p.kind {
@@ -445,6 +449,7 @@ pub fn open_with_spec(app: &mut PhotocraftApp, command: &str, label: &str, spec:
     fields.insert("__label".into(), json!(label));
     fields.insert("__filter".into(), json!(true));
     fields.insert("__preview".into(), json!(true));
+    fields.insert("__split".into(), json!(app.ui.split_compare));
     fields.insert("__spec".into(), json!(spec));
     for p in parse_spec(spec) {
         let v = match &p.kind {
@@ -688,9 +693,34 @@ pub fn body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
     }
     if let Some(mut preview) = f.get("__preview").and_then(Value::as_bool) {
         ui.add_space(4.0);
-        crate::widgets::checkbox(ui, &mut preview, tl!("Preview"));
+        // Split before/after sits beside Preview, so the dialog keeps its height.
+        let mut split = f.get("__split").and_then(Value::as_bool);
+        ui.horizontal(|ui| {
+            crate::widgets::checkbox(ui, &mut preview, tl!("Preview"));
+            if let Some(split) = split.as_mut() {
+                ui.add_space(12.0);
+                ui.add_enabled_ui(preview, |ui| crate::widgets::checkbox(ui, split, tl!("Split before/after")));
+            }
+        });
         f.insert("__preview".into(), json!(preview));
+        if let Some(split) = split {
+            f.insert("__split".into(), json!(split));
+        }
     }
+}
+
+/// Remember the open filter dialog's Split before/after choice for the next filter.
+pub fn sync_split(app: &mut PhotocraftApp) {
+    if let Some(v) = app.ui.dialogs.iter().find(|d| d.fields.contains_key("__filter")).and_then(|d| d.fields.get("__split")).and_then(Value::as_bool) {
+        app.ui.split_compare = v;
+    }
+}
+
+/// The open filter dialog's before/after split, when its preview is on and Split is ticked.
+pub fn split_compare(app: &PhotocraftApp) -> bool {
+    app.ui.dialogs.iter().find(|d| d.fields.contains_key("__filter")).is_some_and(|d| {
+        d.fields.get("__preview").and_then(Value::as_bool) == Some(true) && d.fields.get("__split").and_then(Value::as_bool) == Some(true)
+    })
 }
 
 /// User-facing params (strip the dialog's private `__` keys).

@@ -1142,6 +1142,13 @@ pub struct UiState {
     /// Views per open document (index-aligned with the session's documents).
     pub views: Vec<View>,
     pub dialogs: Vec<Dialog>,
+    /// Filter dialogs: Split before/after is on (the original left of the divider, the preview
+    /// right of it, as Nik Color Efex's compare view). Remembered for the next filter.
+    #[serde(default)]
+    pub split_compare: bool,
+    /// Where the before/after divider sits, as a fraction of the canvas width.
+    #[serde(default = "half")]
+    pub split_at: f32,
     pub windows: Vec<DocWindow>,
     pub theme: crate::theme::ThemeKind,
     pub workspace: String,
@@ -1227,6 +1234,10 @@ pub struct UiState {
     pub camera_raw_preview: CameraRawPreviewState,
 }
 
+fn half() -> f32 {
+    0.5
+}
+
 impl Default for UiState {
     fn default() -> Self {
         Self {
@@ -1273,6 +1284,8 @@ impl Default for UiState {
             panels: Panels::default(),
             views: Vec::new(),
             dialogs: Vec::new(),
+            split_compare: false,
+            split_at: 0.5,
             windows: Vec::new(),
             theme: crate::theme::ThemeKind::ProMedium,
             workspace: "Essentials".into(),

@@ -50,8 +50,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          tag="jpegfix-${GITHUB_SHA::7}"
+          tag="fork-${GITHUB_SHA::7}"
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
-            --title "PhotoCraft JPEG Options (${GITHUB_SHA::7})" \
-            --notes "Ad-hoc signed Apple Silicon build of branch fix/jpeg-options. First launch: right-click PhotoCraft, choose Open." \
+            --title "PhotoCraft fork build (${GITHUB_SHA::7})" \
+            --notes "Ad-hoc signed Apple Silicon build of branch fix/jpeg-options: JPEG Options and Split before/after. First launch: right-click PhotoCraft, choose Open." \
             dist/release/*.dmg

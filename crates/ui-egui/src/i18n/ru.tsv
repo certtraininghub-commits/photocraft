@@ -2319,6 +2319,9 @@
 	Jpeg quality	Качество JPEG
 	Jpeg save quality	Качество сохранения JPEG
 	JPEG Options	Параметры JPEG
+	Before	До
+	After	После
+	Split before/after	Разделить до/после
 	Image Options	Параметры изображения
 	small file	маленький файл
 	large file	большой файл

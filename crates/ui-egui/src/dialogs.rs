@@ -623,6 +623,28 @@ mod tests {
     }
 
     #[test]
+    fn filter_dialogs_offer_split_before_after_and_remember_it() {
+        let (mut app, id) = filter_dialog_with_preview(false);
+        let fields = |app: &PhotocraftApp| app.ui.dialogs.iter().find(|d| d.id == id).unwrap().fields.clone();
+        assert_eq!(fields(&app).get("__split"), Some(&serde_json::json!(false)), "off by default");
+        assert!(!crate::filter_dialog::split_compare(&app));
+        app.ui.dialogs.iter_mut().find(|d| d.id == id).unwrap().fields.insert("__split".into(), serde_json::json!(true));
+        assert!(crate::filter_dialog::split_compare(&app));
+        // Preview off: nothing to compare.
+        app.ui.dialogs.iter_mut().find(|d| d.id == id).unwrap().fields.insert("__preview".into(), serde_json::json!(false));
+        assert!(!crate::filter_dialog::split_compare(&app));
+        crate::filter_dialog::sync_split(&mut app);
+        assert!(app.ui.split_compare, "remembered for the next filter");
+        app.ui.close_dialog(id);
+        let next = open_command_dialog(&mut app, "filter.blur.gaussianBlur", "Gaussian Blur");
+        assert_eq!(app.ui.dialogs.iter().find(|d| d.id == next).unwrap().fields.get("__split"), Some(&serde_json::json!(true)));
+        // Plug-in dialogs (Filter › Plug-ins) offer it too.
+        let plug = crate::filter_dialog::open_with_spec(&mut app, "plugin.run", "Pro Contrast", r#"{"amount":0..100=50}"#, serde_json::Map::new());
+        assert_eq!(app.ui.dialogs.iter().find(|d| d.id == plug).unwrap().fields.get("__split"), Some(&serde_json::json!(true)));
+        assert!((app.ui.split_at - 0.5).abs() < 1e-6, "the divider starts in the middle");
+    }
+
+    #[test]
     fn color_picker_has_inset_content_and_actions_at_the_right_edge() {
         use egui_kittest::{Harness, kittest::Queryable};
 

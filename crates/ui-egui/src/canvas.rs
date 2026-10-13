@@ -2560,6 +2560,8 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         // Live adjustment previews on big documents use a downsampled proxy (see proxy.rs), unless
         // Preferences › Performance › Low Resolution Previews is off.
         let mut on_gpu = false;
+        crate::filter_dialog::sync_split(app);
+        let split = primary && crate::filter_dialog::split_compare(app);
         // A flipped or pixel-aspect-corrected view draws through the CPU path (the GPU canvas shader
         // has no mirroring or non-square pixels). Rotation stays on the GPU: it is a view uniform.
         let gpu_ok = crate::gpu_canvas::gpu_view_ok(flip, view.rotation, aspect);
@@ -2592,6 +2594,27 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
                 offset: [0.0, 0.0],
             };
             paint_gpu_view(&painter, rect, params, &pattern);
+            // Split before/after (filter dialogs): the original left of the divider, as in Nik
+            // Color Efex. The proxy shows the filter; the document's own view covers the left part.
+            if split && ensure_gpu(app, idx, visible_doc_rect(&xf)) {
+                let left = Rect::from_min_max(rect.min, pos2(rect.min.x + rect.width() * app.ui.split_at.clamp(0.0, 1.0), rect.max.y));
+                let before = crate::gpu_canvas::ViewParams {
+                    doc: doc.id.0,
+                    doc_size: [doc.size.width, doc.size.height],
+                    zoom: point_zoom,
+                    center: view.center,
+                    rotation: if view.rotation.is_finite() { view.rotation.to_radians() } else { 0.0 },
+                    shadow: false,
+                    pixel_grid: false,
+                    view_key: egui::Id::new(("pc-canvas-before", ctx.viewport_id(), idx)).value(),
+                    display: sync_display_lut(app, &doc, doc.id.0, output),
+                    output: output.unwrap_or(0),
+                    hdr: hdr_preview(app, &doc),
+                    offset: [0.0, 0.0],
+                };
+                paint_gpu_view(&painter.with_clip_rect(left.intersect(painter.clip_rect())), rect, before, &[]);
+                split_divider(app, ui, &painter, rect, idx);
+            }
         } else if gpu_ok && ensure_gpu(app, idx, visible_doc_rect(&xf)) {
             on_gpu = true;
             app.perf.gpu = true;
@@ -3586,6 +3609,40 @@ fn paint_mapped_image(painter: &egui::Painter, xf: &ViewXform, tex: egui::Textur
 
 /// The GPU canvas view, then its View › Pattern Preview copies (#1067): the same texture drawn
 /// again whole document sizes away, each with its own view uniform and no shadow.
+/// The before/after divider over the canvas: a line with a round handle and Before / After
+/// labels. Dragging anywhere on the line moves it (stored as a fraction of the canvas width).
+fn split_divider(app: &mut PhotocraftApp, ui: &egui::Ui, painter: &egui::Painter, rect: Rect, idx: usize) {
+    let x = rect.min.x + rect.width() * app.ui.split_at.clamp(0.0, 1.0);
+    let grip = Rect::from_min_max(pos2(x - 9.0, rect.min.y), pos2(x + 9.0, rect.max.y));
+    let response = ui.interact(grip, egui::Id::new(("pc-split-divider", idx)), egui::Sense::drag());
+    if (response.dragged() || response.drag_started())
+        && let Some(p) = response.interact_pointer_pos()
+    {
+        app.ui.split_at = ((p.x - rect.min.x) / rect.width().max(1.0)).clamp(0.02, 0.98);
+    }
+    if response.hovered() || response.dragged() {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
+    }
+    let x = rect.min.x + rect.width() * app.ui.split_at.clamp(0.0, 1.0);
+    let line = Color32::from_white_alpha(230);
+    painter.line_segment([pos2(x, rect.min.y), pos2(x, rect.max.y)], egui::Stroke::new(1.5, line));
+    let c = pos2(x, rect.center().y);
+    painter.circle_filled(c, 11.0, Color32::from_black_alpha(150));
+    painter.circle_stroke(c, 11.0, egui::Stroke::new(1.5, line));
+    for dx in [-3.5f32, 3.5] {
+        painter.line_segment([pos2(c.x + dx, c.y - 5.0), pos2(c.x + dx, c.y + 5.0)], egui::Stroke::new(1.5, line));
+    }
+    let font = egui::FontId::proportional(12.0);
+    let label = |pos: Pos2, align: egui::Align2, text: &str| {
+        let galley = painter.layout_no_wrap(text.to_string(), font.clone(), Color32::WHITE);
+        let r = align.anchor_size(pos, galley.size()).expand2(egui::vec2(7.0, 3.0));
+        painter.rect_filled(r, 4.0, Color32::from_black_alpha(140));
+        painter.galley(r.min + egui::vec2(7.0, 3.0), galley, Color32::WHITE);
+    };
+    label(pos2(x - 10.0, rect.min.y + 12.0), egui::Align2::RIGHT_TOP, tl!("Before"));
+    label(pos2(x + 10.0, rect.min.y + 12.0), egui::Align2::LEFT_TOP, tl!("After"));
+}
+
 fn paint_gpu_view(painter: &egui::Painter, rect: Rect, params: crate::gpu_canvas::ViewParams, copies: &[[i32; 2]]) {
     crate::gpu_canvas::GpuCanvas::paint(painter, rect, params);
     for (k, &c) in copies.iter().enumerate() {

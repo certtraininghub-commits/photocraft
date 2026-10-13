@@ -1894,6 +1894,9 @@
 	Jpeg quality	JPEG-Qualität
 	Jpeg save quality	JPEG-Qualität beim Speichern
 	JPEG Options	JPEG-Optionen
+	Before	Vorher
+	After	Nachher
+	Split before/after	Vorher/Nachher geteilt
 	Image Options	Bildoptionen
 	small file	kleine Datei
 	large file	große Datei
